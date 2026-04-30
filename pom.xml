@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.fhtw</groupId>
-    <artifactId>mytour</artifactId>
+    <artifactId>mytour-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>mytour</name>
-    <description>mytour</description>
+    <name>MyTourApi</name>
+    <description>MyTourApi Project</description>
     <url/>
     <licenses>
         <license/>
