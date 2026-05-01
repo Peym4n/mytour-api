@@ -28,3 +28,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ../mytour-ui
+    container_name: mytour-ui-app
+    ports:
+      - "${UI_PORT:-4200}:4200"
+    environment:
+      - API_URL=http://localhost:${APP_PORT:-8080}
+    depends_on:
+      app:
+        condition: service_healthy
