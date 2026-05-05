@@ -1,0 +1,19 @@
+@startuml
+left to right direction
+actor User as User
+actor "OpenRouteService" as ORS <<Application>>
+
+rectangle "Tour Planner" {
+  usecase "Tour erstellen" as UC1
+  usecase "Routeninformationen abrufen" as UC2
+  usecase "Tourlog verwalten" as UC3
+  usecase "Volltextsuche durchführen" as UC4
+}
+
+User --> UC1
+User --> UC3
+User --> UC4
+
+UC1 ..> UC2 : <<include>>
+UC2 --> ORS
+@enduml
