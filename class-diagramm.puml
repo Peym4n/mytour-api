@@ -1,0 +1,58 @@
+@startuml
+class User {
+  +id: Long
+  +email: String
+  +passwordHash: String
+}
+
+class Tour {
+  +id: Long
+  +name: String
+  +description: String
+  +from: String
+  +to: String
+  +transportType: TransportType
+  +distance: Double
+  +estimatedTime: Int
+  +popularity: Int
+  +childFriendliness: Double
+}
+
+class TourLog {
+  +id: Long
+  +dateTime: LocalDateTime
+  +comment: String
+  +difficulty: Difficulty
+  +totalDistance: Double
+  +totalTime: Int
+  +rating: Int
+}
+
+class RouteInfo {
+  +id: Long
+  +startLat: Double
+  +startLon: Double
+  +endLat: Double
+  +endLon: Double
+  +pathCoordinates: String
+}
+
+enum TransportType {
+  BIKE
+  HIKE
+  RUNNING
+  VACATION
+}
+
+enum Difficulty {
+  EASY
+  MODERATE
+  HARD
+}
+
+User "1" *-- "0..*" Tour : owns
+Tour "1" *-- "0..*" TourLog : contains
+Tour "1" *-- "0..1" RouteInfo : has
+Tour ..> TransportType
+TourLog ..> Difficulty
+@enduml
