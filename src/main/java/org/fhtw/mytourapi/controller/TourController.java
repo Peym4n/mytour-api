@@ -19,6 +19,7 @@ import org.fhtw.mytourapi.dto.TransportType;
 import org.fhtw.mytourapi.dto.UpdateTourRequest;
 import org.fhtw.mytourapi.service.IntermediateTourService;
 import org.fhtw.mytourapi.service.TourExportService;
+import org.fhtw.mytourapi.service.TourImportService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
@@ -44,13 +45,16 @@ public class TourController {
 
     private final IntermediateTourService tourService;
     private final TourExportService tourExportService;
+    private final TourImportService tourImportService;
 
     public TourController(
             IntermediateTourService tourService,
-            TourExportService tourExportService
+            TourExportService tourExportService,
+            TourImportService tourImportService
     ) {
         this.tourService = tourService;
         this.tourExportService = tourExportService;
+        this.tourImportService = tourImportService;
     }
 
     @GetMapping
@@ -134,10 +138,6 @@ public class TourController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Import tours and logs for the authenticated user from the project's JSON export format.")
     public ImportResultDto importTours(@Valid @RequestBody TourImportRequest request) {
-        return notImplemented();
-    }
-
-    private static <T> T notImplemented() {
-        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Tour service is not implemented yet");
+        return tourImportService.importTours(request);
     }
 }

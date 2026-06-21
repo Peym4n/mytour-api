@@ -2,6 +2,8 @@ package org.fhtw.mytourapi.service;
 
 import org.fhtw.mytourapi.dto.CoordinateDto;
 import org.fhtw.mytourapi.dto.CreateTourLogRequest;
+import org.fhtw.mytourapi.dto.ImportedTourLogDto;
+import org.fhtw.mytourapi.dto.ImportedWeatherSnapshotDto;
 import org.fhtw.mytourapi.dto.TourDetailDto;
 import org.fhtw.mytourapi.dto.TourLogDto;
 import org.fhtw.mytourapi.dto.TourLogWeatherDto;
@@ -114,6 +116,26 @@ public class IntermediateTourLogService {
         return Optional.of(log);
     }
 
+    public Optional<List<TourLogDto>> importLogs(Long tourId, List<ImportedTourLogDto> importedLogs) {
+        if (tourService.getTour(tourId).isEmpty()) {
+            return Optional.empty();
+        }
+
+        Instant now = Instant.now();
+        List<TourLogDto> logs = importedLogs.stream()
+                .map((importedLog) -> toImportedLog(tourId, importedLog, now))
+                .toList();
+
+        logsByTourId.compute(tourId, (ignored, existingLogs) -> {
+            List<TourLogDto> updatedLogs = new ArrayList<>(existingLogs == null ? List.of() : existingLogs);
+            updatedLogs.addAll(logs);
+            return List.copyOf(updatedLogs);
+        });
+        refreshDerivedTourState(tourId);
+
+        return Optional.of(logs);
+    }
+
     public Optional<TourLogDto> getLog(Long tourId, Long logId) {
         if (tourService.getTour(tourId).isEmpty()) {
             return Optional.empty();
@@ -204,6 +226,51 @@ public class IntermediateTourLogService {
         replaceLog(tourId, updatedLog);
         refreshTourSearchIndex(tourId);
         return Optional.of(weather);
+    }
+
+    private TourLogDto toImportedLog(Long tourId, ImportedTourLogDto importedLog, Instant importedAt) {
+        Long logId = nextLogId.getAndIncrement();
+        CreateTourLogRequest log = importedLog.log();
+
+        return new TourLogDto(
+                logId,
+                tourId,
+                log.performedAt(),
+                normalizeComment(log.comment()),
+                log.difficulty(),
+                log.totalDistanceM(),
+                log.totalTimeS(),
+                log.rating(),
+                toImportedWeather(logId, importedLog.weather(), importedAt),
+                importedAt,
+                importedAt,
+                1L
+        );
+    }
+
+    private TourLogWeatherDto toImportedWeather(
+            Long logId,
+            ImportedWeatherSnapshotDto weather,
+            Instant importedAt
+    ) {
+        if (weather == null) {
+            return null;
+        }
+
+        return new TourLogWeatherDto(
+                logId,
+                weather.provider(),
+                weather.providerDataset(),
+                weather.lookupCoordinate(),
+                weather.weatherObservedAt(),
+                weather.temperatureC(),
+                weather.relativeHumidityPercent(),
+                weather.precipitationMm(),
+                weather.weatherCode(),
+                weather.weatherDescription(),
+                weather.windSpeedKmh(),
+                weather.fetchedAt() == null ? importedAt : weather.fetchedAt()
+        );
     }
 
     private Optional<TourLogDto> findLog(Long tourId, Long logId) {

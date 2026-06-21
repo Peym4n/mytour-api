@@ -11,6 +11,7 @@ import org.fhtw.mytourapi.service.IntermediateTourService;
 import org.fhtw.mytourapi.service.RouteCalculationService;
 import org.fhtw.mytourapi.service.TourAttributeCalculator;
 import org.fhtw.mytourapi.service.TourExportService;
+import org.fhtw.mytourapi.service.TourImportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -48,7 +49,11 @@ class TourControllerCoverImageTest {
         );
         IntermediateTourLogService tourLogService = new IntermediateTourLogService(tourService, tourSearchIndex);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new TourController(tourService, new TourExportService(tourService, tourLogService)))
+                .standaloneSetup(new TourController(
+                        tourService,
+                        new TourExportService(tourService, tourLogService),
+                        new TourImportService(tourService, tourLogService)
+                ))
                 .setControllerAdvice(new ApiExceptionHandler(new ApiErrorResponseFactory()))
                 .build();
     }

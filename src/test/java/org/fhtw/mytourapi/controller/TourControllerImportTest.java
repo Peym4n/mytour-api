@@ -1,5 +1,7 @@
 package org.fhtw.mytourapi.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.fhtw.mytourapi.config.ImageStorageProperties;
 import org.fhtw.mytourapi.config.OpenRouteServiceProperties;
 import org.fhtw.mytourapi.exception.ApiErrorResponseFactory;
@@ -15,20 +17,25 @@ import org.fhtw.mytourapi.service.TourImportService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.nio.file.Path;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class TourControllerExportTest {
+class TourControllerImportTest {
+
+    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @TempDir
     private Path tempDirectory;
 
+    private TourExportService exportService;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -41,11 +48,12 @@ class TourControllerExportTest {
                 tourSearchIndex
         );
         IntermediateTourLogService tourLogService = new IntermediateTourLogService(tourService, tourSearchIndex);
+        exportService = new TourExportService(tourService, tourLogService);
 
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new TourController(
                         tourService,
-                        new TourExportService(tourService, tourLogService),
+                        exportService,
                         new TourImportService(tourService, tourLogService)
                 ))
                 .setControllerAdvice(new ApiExceptionHandler(new ApiErrorResponseFactory()))
@@ -53,30 +61,35 @@ class TourControllerExportTest {
     }
 
     @Test
-    void exportToursReturnsJsonExportPayload() throws Exception {
-        mockMvc.perform(get("/api/tours/export"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.schemaVersion").value(1))
-                .andExpect(jsonPath("$.exportedAt").isNotEmpty())
-                .andExpect(jsonPath("$.tours.length()").value(4))
-                .andExpect(jsonPath("$.tours[0].tour.name").value("Danube Island Evening Ride"))
-                .andExpect(jsonPath("$.tours[0].tour.id").doesNotExist())
-                .andExpect(jsonPath("$.tours[0].tour.userId").doesNotExist())
-                .andExpect(jsonPath("$.tours[0].route.routeSource").value("OPENROUTESERVICE"))
-                .andExpect(jsonPath("$.tours[0].coverImage.path").value("intermediate/danube-island.jpg"))
-                .andExpect(jsonPath("$.tours[0].logs.length()").value(3))
-                .andExpect(jsonPath("$.tours[0].logs[0].log.id").doesNotExist())
-                .andExpect(jsonPath("$.tours[0].logs[0].log.rating").value(5))
-                .andExpect(jsonPath("$.tours[0].logs[0].weather.provider").value("OPEN_METEO"))
-                .andExpect(jsonPath("$.tours[0].logs[0].weather.fetchedAt").isNotEmpty())
-                .andExpect(jsonPath("$.tours[0].logs[0].weather.weatherDescription").value("clear sky"));
+    void importToursReturnsCreatedResult() throws Exception {
+        mockMvc.perform(post("/api/tours/import")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(exportService.exportTours())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.importedTours").value(4))
+                .andExpect(jsonPath("$.importedLogs").value(9))
+                .andExpect(jsonPath("$.createdTourIds.length()").value(4))
+                .andExpect(jsonPath("$.createdTourIds[0]").value(5));
+    }
+
+    @Test
+    void importToursReturnsStructuredValidationErrors() throws Exception {
+        ObjectNode exportJson = objectMapper.valueToTree(exportService.exportTours());
+        exportJson.put("schemaVersion", 99);
+
+        mockMvc.perform(post("/api/tours/import")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(exportJson)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Import validation failed"))
+                .andExpect(jsonPath("$.validationErrors[0]", containsString("schemaVersion")));
     }
 
     private RouteCalculationService routeCalculationService() {
         return new RouteCalculationService(
                 new OpenRouteServiceProperties(),
                 (profile, startCoordinate, endCoordinate, fetchedAt) -> {
-                    throw new AssertionError("OpenRouteService client must not be used without an API key.");
+                    throw new AssertionError("OpenRouteService client must not be used during import tests.");
                 }
         );
     }

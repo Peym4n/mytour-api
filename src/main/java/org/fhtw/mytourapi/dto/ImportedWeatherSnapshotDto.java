@@ -33,6 +33,7 @@ public record ImportedWeatherSnapshotDto(
 
         BigDecimal windSpeedKmh,
 
+        @NotNull
         Instant fetchedAt
 ) {
 }

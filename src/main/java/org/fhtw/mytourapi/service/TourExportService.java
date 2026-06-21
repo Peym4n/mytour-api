@@ -58,6 +58,8 @@ public class TourExportService {
                 ),
                 route,
                 tour.coverImage(),
+                tour.plannedDistanceM(),
+                tour.estimatedDurationS(),
                 logs
         );
     }

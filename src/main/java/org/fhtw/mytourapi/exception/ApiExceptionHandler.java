@@ -80,6 +80,19 @@ public class ApiExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ImportValidationException.class)
+    public ResponseEntity<ApiErrorResponse> handleImportValidation(
+            ImportValidationException exception,
+            HttpServletRequest request
+    ) {
+        return errorResponseFactory.create(
+                HttpStatus.BAD_REQUEST,
+                exception.getMessage(),
+                request,
+                exception.validationErrors()
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValid(
             MethodArgumentNotValidException exception,

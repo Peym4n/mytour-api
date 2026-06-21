@@ -5,6 +5,7 @@ import org.fhtw.mytourapi.dto.ComputedTourAttributesDto;
 import org.fhtw.mytourapi.dto.CoordinateDto;
 import org.fhtw.mytourapi.dto.CoverImageDto;
 import org.fhtw.mytourapi.dto.CreateTourRequest;
+import org.fhtw.mytourapi.dto.ImportedTourDto;
 import org.fhtw.mytourapi.dto.PopularityCategory;
 import org.fhtw.mytourapi.dto.TourDetailDto;
 import org.fhtw.mytourapi.dto.TourLogDto;
@@ -235,6 +236,33 @@ public class IntermediateTourService {
                 request.startCoordinate(),
                 request.endCoordinate(),
                 null,
+                defaultComputedAttributes(),
+                now,
+                now,
+                1L
+        );
+
+        toursById.put(tourId, tour);
+        return tour;
+    }
+
+    public TourDetailDto importTour(ImportedTourDto importedTour) {
+        Long tourId = nextTourId.getAndIncrement();
+        Instant now = Instant.now();
+        CreateTourRequest request = importedTour.tour();
+        TourDetailDto tour = new TourDetailDto(
+                tourId,
+                INTERMEDIATE_USER_ID,
+                request.name(),
+                request.description(),
+                request.startLocation(),
+                request.endLocation(),
+                request.transportType(),
+                request.timezoneId(),
+                importedTour.plannedDistanceM(),
+                importedTour.estimatedDurationS(),
+                importedTour.coverImage(),
+                importedTour.route(),
                 defaultComputedAttributes(),
                 now,
                 now,
