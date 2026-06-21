@@ -24,7 +24,7 @@ class ApiExceptionHandlerTest {
     void setUp() {
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new TourController(new IntermediateTourService()))
-                .setControllerAdvice(new ApiExceptionHandler())
+                .setControllerAdvice(new ApiExceptionHandler(new ApiErrorResponseFactory()))
                 .build();
     }
 

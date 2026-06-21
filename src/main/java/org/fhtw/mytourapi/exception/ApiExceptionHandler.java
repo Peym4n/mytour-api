@@ -21,7 +21,6 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -31,15 +30,21 @@ public class ApiExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ApiExceptionHandler.class);
     private static final String VALIDATION_FAILED = "Validation failed";
 
+    private final ApiErrorResponseFactory errorResponseFactory;
+
+    public ApiExceptionHandler(ApiErrorResponseFactory errorResponseFactory) {
+        this.errorResponseFactory = errorResponseFactory;
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiErrorResponse> handleResponseStatus(
             ResponseStatusException exception,
             HttpServletRequest request
     ) {
         HttpStatusCode statusCode = exception.getStatusCode();
-        return buildResponse(
+        return errorResponseFactory.create(
                 statusCode,
-                messageOrDefault(exception.getReason(), reasonPhrase(statusCode)),
+                messageOrDefault(exception.getReason(), errorResponseFactory.reasonPhrase(statusCode)),
                 request,
                 List.of()
         );
@@ -58,7 +63,12 @@ public class ApiExceptionHandler {
                 .map(ApiExceptionHandler::formatObjectError)
                 .toList();
 
-        return buildResponse(HttpStatus.BAD_REQUEST, VALIDATION_FAILED, request, merge(validationErrors, globalErrors));
+        return errorResponseFactory.create(
+                HttpStatus.BAD_REQUEST,
+                VALIDATION_FAILED,
+                request,
+                merge(validationErrors, globalErrors)
+        );
     }
 
     @ExceptionHandler(HandlerMethodValidationException.class)
@@ -73,7 +83,7 @@ public class ApiExceptionHandler {
                 .sorted()
                 .toList();
 
-        return buildResponse(HttpStatus.BAD_REQUEST, VALIDATION_FAILED, request, validationErrors);
+        return errorResponseFactory.create(HttpStatus.BAD_REQUEST, VALIDATION_FAILED, request, validationErrors);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -86,7 +96,7 @@ public class ApiExceptionHandler {
                 .sorted()
                 .toList();
 
-        return buildResponse(HttpStatus.BAD_REQUEST, VALIDATION_FAILED, request, validationErrors);
+        return errorResponseFactory.create(HttpStatus.BAD_REQUEST, VALIDATION_FAILED, request, validationErrors);
     }
 
     @ExceptionHandler({
@@ -95,41 +105,18 @@ public class ApiExceptionHandler {
             MethodArgumentTypeMismatchException.class
     })
     public ResponseEntity<ApiErrorResponse> handleBadRequest(Exception exception, HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, badRequestMessage(exception), request, List.of());
+        return errorResponseFactory.create(HttpStatus.BAD_REQUEST, badRequestMessage(exception), request, List.of());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception exception, HttpServletRequest request) {
         LOGGER.error("Unhandled API exception at {}", request.getRequestURI(), exception);
-        return buildResponse(
+        return errorResponseFactory.create(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred.",
                 request,
                 List.of()
         );
-    }
-
-    private static ResponseEntity<ApiErrorResponse> buildResponse(
-            HttpStatusCode statusCode,
-            String message,
-            HttpServletRequest request,
-            List<String> validationErrors
-    ) {
-        ApiErrorResponse response = new ApiErrorResponse(
-                Instant.now(),
-                statusCode.value(),
-                reasonPhrase(statusCode),
-                message,
-                request.getRequestURI(),
-                validationErrors
-        );
-
-        return ResponseEntity.status(statusCode).body(response);
-    }
-
-    private static String reasonPhrase(HttpStatusCode statusCode) {
-        HttpStatus status = HttpStatus.resolve(statusCode.value());
-        return status == null ? "HTTP " + statusCode.value() : status.getReasonPhrase();
     }
 
     private static String badRequestMessage(Exception exception) {
