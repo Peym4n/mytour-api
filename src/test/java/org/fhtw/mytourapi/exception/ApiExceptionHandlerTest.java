@@ -1,7 +1,9 @@
 package org.fhtw.mytourapi.exception;
 
 import org.fhtw.mytourapi.controller.TourController;
+import org.fhtw.mytourapi.config.ImageStorageProperties;
 import org.fhtw.mytourapi.config.OpenRouteServiceProperties;
+import org.fhtw.mytourapi.service.CoverImageStorageService;
 import org.fhtw.mytourapi.service.IntermediateTourService;
 import org.fhtw.mytourapi.service.RouteCalculationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,6 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.nio.file.Path;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -76,6 +81,16 @@ class ApiExceptionHandlerTest {
                 }
         );
 
-        return new IntermediateTourService(routeCalculationService);
+        ImageStorageProperties imageStorageProperties = new ImageStorageProperties();
+        imageStorageProperties.setBaseDirectory(Path.of(
+                System.getProperty("java.io.tmpdir"),
+                "mytour-api-test-images",
+                UUID.randomUUID().toString()
+        ));
+
+        return new IntermediateTourService(
+                routeCalculationService,
+                new CoverImageStorageService(imageStorageProperties)
+        );
     }
 }

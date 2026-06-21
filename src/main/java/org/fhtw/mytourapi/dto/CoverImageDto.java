@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Metadata for a tour cover image stored on the filesystem.")
 public record CoverImageDto(
-        @Schema(example = "users/1/tours/42/cover.jpg")
+        @Schema(example = "covers/9e856ad6-8f76-4422-9e81-08c8f98a8d40-cover.jpg")
         String path,
 
         @Schema(example = "cover.jpg")

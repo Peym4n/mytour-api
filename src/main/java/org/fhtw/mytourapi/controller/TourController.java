@@ -105,14 +105,17 @@ public class TourController {
             @PathVariable Long tourId,
             @RequestPart("file") MultipartFile file
     ) {
-        return notImplemented();
+        return tourService.uploadCoverImage(tourId, file)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tour not found"));
     }
 
     @DeleteMapping("/{tourId}/cover-image")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Delete the cover image metadata and filesystem file for a tour.")
     public void deleteCoverImage(@PathVariable Long tourId) {
-        notImplemented();
+        if (!tourService.deleteCoverImage(tourId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Tour not found");
+        }
     }
 
     @GetMapping("/export")

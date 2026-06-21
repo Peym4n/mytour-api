@@ -12,7 +12,11 @@ import org.fhtw.mytourapi.dto.TourSearchResponse;
 import org.fhtw.mytourapi.dto.TourSummaryDto;
 import org.fhtw.mytourapi.dto.TransportType;
 import org.fhtw.mytourapi.dto.UpdateTourRequest;
+import org.fhtw.mytourapi.exception.FileStorageException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -26,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class IntermediateTourService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(IntermediateTourService.class);
     private static final Long INTERMEDIATE_USER_ID = 1L;
 
     private final Map<Long, TourDetailDto> toursById = new ConcurrentHashMap<>(Map.of(
@@ -169,9 +174,14 @@ public class IntermediateTourService {
     private final AtomicLong nextTourId = new AtomicLong(5L);
 
     private final RouteCalculationService routeCalculationService;
+    private final CoverImageStorageService coverImageStorageService;
 
-    public IntermediateTourService(RouteCalculationService routeCalculationService) {
+    public IntermediateTourService(
+            RouteCalculationService routeCalculationService,
+            CoverImageStorageService coverImageStorageService
+    ) {
         this.routeCalculationService = routeCalculationService;
+        this.coverImageStorageService = coverImageStorageService;
     }
 
     public TourSearchResponse searchTours(
@@ -250,7 +260,14 @@ public class IntermediateTourService {
     }
 
     public boolean deleteTour(Long tourId) {
-        return toursById.remove(tourId) != null;
+        TourDetailDto existingTour = toursById.get(tourId);
+        if (existingTour == null) {
+            return false;
+        }
+
+        deleteStoredCoverImage(existingTour.coverImage());
+        toursById.remove(tourId);
+        return true;
     }
 
     public Optional<TourRouteDto> refreshRoute(Long tourId) {
@@ -275,6 +292,37 @@ public class IntermediateTourService {
 
         toursById.put(tourId, updatedTour);
         return Optional.of(calculatedRoute.route());
+    }
+
+    public Optional<CoverImageDto> uploadCoverImage(Long tourId, MultipartFile file) {
+        TourDetailDto existingTour = toursById.get(tourId);
+        if (existingTour == null) {
+            return Optional.empty();
+        }
+
+        CoverImageDto previousCoverImage = existingTour.coverImage();
+        CoverImageDto storedCoverImage = coverImageStorageService.store(file);
+        Instant now = Instant.now();
+        TourDetailDto updatedTour = withCoverImage(existingTour, storedCoverImage, now);
+
+        toursById.put(tourId, updatedTour);
+        deletePreviousCoverImage(tourId, previousCoverImage);
+        return Optional.of(storedCoverImage);
+    }
+
+    public boolean deleteCoverImage(Long tourId) {
+        TourDetailDto existingTour = toursById.get(tourId);
+        if (existingTour == null) {
+            return false;
+        }
+
+        if (existingTour.coverImage() == null) {
+            return true;
+        }
+
+        deleteStoredCoverImage(existingTour.coverImage());
+        toursById.put(tourId, withCoverImage(existingTour, null, Instant.now()));
+        return true;
     }
 
     private boolean matchesQuery(TourDetailDto tour, String query) {
@@ -380,6 +428,45 @@ public class IntermediateTourService {
                 updatedAt,
                 nextVersion(existingTour.version())
         );
+    }
+
+    private TourDetailDto withCoverImage(
+            TourDetailDto existingTour,
+            CoverImageDto coverImage,
+            Instant updatedAt
+    ) {
+        return new TourDetailDto(
+                existingTour.id(),
+                existingTour.userId(),
+                existingTour.name(),
+                existingTour.description(),
+                existingTour.startLocation(),
+                existingTour.endLocation(),
+                existingTour.transportType(),
+                existingTour.timezoneId(),
+                existingTour.plannedDistanceM(),
+                existingTour.estimatedDurationS(),
+                coverImage,
+                existingTour.route(),
+                existingTour.computedAttributes(),
+                existingTour.createdAt(),
+                updatedAt,
+                nextVersion(existingTour.version())
+        );
+    }
+
+    private void deletePreviousCoverImage(Long tourId, CoverImageDto previousCoverImage) {
+        try {
+            deleteStoredCoverImage(previousCoverImage);
+        } catch (FileStorageException exception) {
+            LOGGER.warn("Could not delete previous cover image for tour {}", tourId, exception);
+        }
+    }
+
+    private void deleteStoredCoverImage(CoverImageDto coverImage) {
+        if (coverImage != null) {
+            coverImageStorageService.delete(coverImage.path());
+        }
     }
 
     private Long nextVersion(Long version) {

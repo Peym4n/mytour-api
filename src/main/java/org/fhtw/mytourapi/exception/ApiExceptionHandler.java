@@ -63,6 +63,23 @@ public class ApiExceptionHandler {
         );
     }
 
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<ApiErrorResponse> handleFileStorage(
+            FileStorageException exception,
+            HttpServletRequest request
+    ) {
+        if (exception.status().is5xxServerError()) {
+            LOGGER.error("File storage exception at {}", request.getRequestURI(), exception);
+        }
+
+        return errorResponseFactory.create(
+                exception.status(),
+                exception.getMessage(),
+                request,
+                List.of()
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValid(
             MethodArgumentNotValidException exception,
