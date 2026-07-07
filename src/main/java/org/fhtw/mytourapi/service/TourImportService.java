@@ -25,12 +25,12 @@ public class TourImportService {
     private static final Logger LOGGER = LoggerFactory.getLogger(TourImportService.class);
     private static final int SUPPORTED_SCHEMA_VERSION = 1;
 
-    private final IntermediateTourService tourService;
-    private final IntermediateTourLogService tourLogService;
+    private final TourService tourService;
+    private final TourLogService tourLogService;
 
     public TourImportService(
-            IntermediateTourService tourService,
-            IntermediateTourLogService tourLogService
+            TourService tourService,
+            TourLogService tourLogService
     ) {
         this.tourService = tourService;
         this.tourLogService = tourLogService;

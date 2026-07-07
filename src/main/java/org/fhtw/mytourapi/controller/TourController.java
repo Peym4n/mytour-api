@@ -21,7 +21,7 @@ import org.fhtw.mytourapi.dto.TourSearchResponse;
 import org.fhtw.mytourapi.dto.TransportType;
 import org.fhtw.mytourapi.dto.TourSuggestionDto;
 import org.fhtw.mytourapi.dto.UpdateTourRequest;
-import org.fhtw.mytourapi.service.IntermediateTourService;
+import org.fhtw.mytourapi.service.TourService;
 import org.fhtw.mytourapi.service.LocationSuggestionService;
 import org.fhtw.mytourapi.service.TimezoneSuggestionService;
 import org.fhtw.mytourapi.service.TourExportService;
@@ -51,14 +51,14 @@ import java.util.List;
 @Tag(name = "Tours", description = "CRUD, search, route data, images, import, and export for user-owned tours.")
 public class TourController {
 
-    private final IntermediateTourService tourService;
+    private final TourService tourService;
     private final TourExportService tourExportService;
     private final TourImportService tourImportService;
     private final LocationSuggestionService locationSuggestionService;
     private final TimezoneSuggestionService timezoneSuggestionService;
 
     public TourController(
-            IntermediateTourService tourService,
+            TourService tourService,
             TourExportService tourExportService,
             TourImportService tourImportService,
             LocationSuggestionService locationSuggestionService,

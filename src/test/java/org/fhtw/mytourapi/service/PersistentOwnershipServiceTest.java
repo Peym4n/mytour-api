@@ -53,7 +53,7 @@ class PersistentOwnershipServiceTest {
         TourEntity tour = tour(7L, user);
         RepositoryStub<TourRepository> tourRepository = RepositoryStub.create(TourRepository.class);
         RepositoryStub<UserRepository> userRepository = RepositoryStub.create(UserRepository.class);
-        IntermediateTourService tourService = persistentTourService(tourRepository.proxy(), userRepository.proxy());
+        TourService tourService = persistentTourService(tourRepository.proxy(), userRepository.proxy());
 
         authenticate(user);
         tourRepository.respond("findByIdAndUser_Id", Optional.of(tour), 7L, 42L);
@@ -73,8 +73,8 @@ class PersistentOwnershipServiceTest {
         RepositoryStub<TourRepository> tourRepository = RepositoryStub.create(TourRepository.class);
         RepositoryStub<TourLogRepository> tourLogRepository = RepositoryStub.create(TourLogRepository.class);
         RepositoryStub<UserRepository> userRepository = RepositoryStub.create(UserRepository.class);
-        IntermediateTourService tourService = persistentTourService(tourRepository.proxy(), userRepository.proxy());
-        IntermediateTourLogService logService = persistentLogService(
+        TourService tourService = persistentTourService(tourRepository.proxy(), userRepository.proxy());
+        TourLogService logService = persistentLogService(
                 tourService,
                 tourRepository.proxy(),
                 tourLogRepository.proxy()
@@ -107,8 +107,8 @@ class PersistentOwnershipServiceTest {
         RepositoryStub<TourRepository> tourRepository = RepositoryStub.create(TourRepository.class);
         RepositoryStub<TourLogRepository> tourLogRepository = RepositoryStub.create(TourLogRepository.class);
         RepositoryStub<UserRepository> userRepository = RepositoryStub.create(UserRepository.class);
-        IntermediateTourService tourService = persistentTourService(tourRepository.proxy(), userRepository.proxy());
-        IntermediateTourLogService logService = persistentLogService(
+        TourService tourService = persistentTourService(tourRepository.proxy(), userRepository.proxy());
+        TourLogService logService = persistentLogService(
                 tourService,
                 tourRepository.proxy(),
                 tourLogRepository.proxy()
@@ -123,15 +123,15 @@ class PersistentOwnershipServiceTest {
         assertThat(tourLogRepository.called("delete")).isFalse();
     }
 
-    private IntermediateTourService persistentTourService(
+    private TourService persistentTourService(
             TourRepository tourRepository,
             UserRepository userRepository
     ) {
-        return new IntermediateTourService(
+        return new TourService(
                 routeCalculationService(),
                 coverImageStorageService(),
                 new TourAttributeCalculator(),
-                new IntermediateTourSearchIndex(),
+                new TourSearchIndex(),
                 tourRepository,
                 userRepository,
                 new TourPersistenceMapper(),
@@ -139,14 +139,14 @@ class PersistentOwnershipServiceTest {
         );
     }
 
-    private IntermediateTourLogService persistentLogService(
-            IntermediateTourService tourService,
+    private TourLogService persistentLogService(
+            TourService tourService,
             TourRepository tourRepository,
             TourLogRepository tourLogRepository
     ) {
-        return new IntermediateTourLogService(
+        return new TourLogService(
                 tourService,
-                new IntermediateTourSearchIndex(),
+                new TourSearchIndex(),
                 WeatherSnapshotService.localFallback(),
                 tourRepository,
                 tourLogRepository,

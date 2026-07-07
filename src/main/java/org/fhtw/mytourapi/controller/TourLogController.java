@@ -7,7 +7,7 @@ import org.fhtw.mytourapi.dto.CreateTourLogRequest;
 import org.fhtw.mytourapi.dto.TourLogDto;
 import org.fhtw.mytourapi.dto.TourLogWeatherDto;
 import org.fhtw.mytourapi.dto.UpdateTourLogRequest;
-import org.fhtw.mytourapi.service.IntermediateTourLogService;
+import org.fhtw.mytourapi.service.TourLogService;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,9 +29,9 @@ import java.util.List;
 @Tag(name = "Tour logs", description = "CRUD and weather snapshots for accomplished tour statistics.")
 public class TourLogController {
 
-    private final IntermediateTourLogService tourLogService;
+    private final TourLogService tourLogService;
 
-    public TourLogController(IntermediateTourLogService tourLogService) {
+    public TourLogController(TourLogService tourLogService) {
         this.tourLogService = tourLogService;
     }
 

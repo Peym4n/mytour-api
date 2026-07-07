@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 @Service
-public class IntermediateTourSearchIndex {
+public class TourSearchIndex {
 
     private static final Pattern COMBINING_MARKS = Pattern.compile("\\p{M}+");
     private static final Pattern NON_SEARCH_CHARACTERS = Pattern.compile("[^\\p{L}\\p{N}]+");
