@@ -8,7 +8,6 @@ import org.fhtw.mytourapi.domain.UserEntity;
 import org.fhtw.mytourapi.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,10 +29,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     public JwtAuthenticationFilter(
             JwtService jwtService,
-            ObjectProvider<UserRepository> userRepositoryProvider
+            UserRepository userRepository
     ) {
         this.jwtService = jwtService;
-        this.userRepository = userRepositoryProvider.getIfAvailable();
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -65,10 +64,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void authenticate(String token) {
         JwtClaims claims = jwtService.parse(token);
-        if (userRepository == null) {
-            throw new InvalidJwtException("User repository is not available.");
-        }
-
         UserEntity user = userRepository.findById(claims.userId())
                 .orElseThrow(() -> new InvalidJwtException("JWT user no longer exists."));
         AuthenticatedUserPrincipal principal = new AuthenticatedUserPrincipal(user.getId(), user.getUsername());

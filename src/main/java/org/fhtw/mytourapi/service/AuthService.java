@@ -10,8 +10,6 @@ import org.fhtw.mytourapi.security.CurrentUserService;
 import org.fhtw.mytourapi.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,20 +28,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final CurrentUserService currentUserService;
 
-    @Autowired
     public AuthService(
-            ObjectProvider<UserRepository> userRepositoryProvider,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            CurrentUserService currentUserService
-    ) {
-        this.userRepository = userRepositoryProvider.getIfAvailable();
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-        this.currentUserService = currentUserService;
-    }
-
-    AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
@@ -57,8 +42,6 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        requireUserRepository();
-
         String username = request.username().trim();
         String normalizedUsername = normalizeUsername(username);
         if (userRepository.existsByUsernameNormalized(normalizedUsername)) {
@@ -81,8 +64,6 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        requireUserRepository();
-
         String normalizedUsername = normalizeUsername(request.username());
         UserEntity user = userRepository.findByUsernameNormalized(normalizedUsername)
                 .orElseThrow(AuthService::invalidCredentials);
@@ -107,12 +88,6 @@ public class AuthService {
                 jwt.expiresAt(),
                 new UserDto(user.getId(), user.getUsername(), user.getCreatedAt())
         );
-    }
-
-    private void requireUserRepository() {
-        if (userRepository == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "User repository is not available");
-        }
     }
 
     private static ResponseStatusException invalidCredentials() {
